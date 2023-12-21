@@ -1,2 +1,5 @@
 (library
- (name one_on_one_chat))
+ (name one_on_one_chat)
+ (wrapped false)
+ (libraries core async sexplib)
+ (preprocess (pps ppx_jane)))

@@ -1,4 +1,5 @@
 (executable
  (public_name one_on_one_chat)
  (name main)
- (libraries one_on_one_chat))
+ (libraries one_on_one_chat core async sexplib core_unix.command_unix)
+ (preprocess (pps ppx_jane)))

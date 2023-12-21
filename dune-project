@@ -5,7 +5,7 @@
 (generate_opam_files true)
 
 (source
- (github yokurang/one_on_one_chat))
+ (github yokurang/alan-ahrefs-challenge.git))
 
 (authors "Alan Matthew")
 
@@ -13,7 +13,7 @@
 
 (license LICENSE)
 
-(documentation https://github.com/yokurang/one_on_one_chat)
+(documentation https://github.com/yokurang/https://github.com/yokurang/alan-ahrefs-challenge.git)
 
 (package
  (name one_on_one_chat)
