@@ -1,0 +1,4 @@
+(executable
+ (public_name one_on_one_chat)
+ (name main)
+ (libraries one_on_one_chat))
