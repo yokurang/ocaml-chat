@@ -1,9 +1,13 @@
 open Async
+open DataTypes
 
-(* to ensure total ordering of messages and
-  that count of messages = count of acknowledgements *)
-let uniqueMessageNumber: int ref = ref 0
-let uniqueAcknowledgementNumber: int ref = ref 0
+let global_state = {
+  uniqueMessageNumber = ref 0;
+  uniqueAcknowledgementNumber = ref 0;
+  client_nickname = ref None;
+  server_nickname = ref None;
+  connection_address = ref None;
+}
 
 let () : unit =
   let open Command.Let_syntax in
@@ -30,15 +34,11 @@ let () : unit =
             ~doc:"NICK The nickname for the chat session (default: anonymous andy)"
             in
             fun () ->
-              printf "Starting server to %d with nickname: %s\n" port nick;
-              printf "The initial message number is %d\n" !uniqueMessageNumber;
-              printf "The initial acknowledge number is %d\n" !uniqueAcknowledgementNumber;
               let stdin_pipe = (Reader.pipe (Lazy.force Reader.stdin)) in
               Server.start_server
                 ~port
                 ~nick
-                ~uniqueMessageNumber
-                ~uniqueAcknowledgementNumber
+                ~global_state
                 ~stdin_pipe
           )
       );
@@ -67,14 +67,12 @@ let () : unit =
             ~doc:"NICK The nickname for the chat session (default: anonymous alan)"
             in
             fun () ->
-              printf "Connecting to %s:%d with nickname: %s\n" host port nick;
               let stdin_pipe = (Reader.pipe (Lazy.force Reader.stdin)) in
               Client.start_client
                 ~host
                 ~port
                 ~nick
-                ~uniqueMessageNumber
-                ~uniqueAcknowledgementNumber
+                ~global_state
                 ~stdin_pipe
           )
       );

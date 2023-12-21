@@ -1,8 +1,9 @@
 open Core
 open Async
-open Util
+open Utils
+open DataTypes
 
-let start_client ~host ~port ~nick ~uniqueMessageNumber ~uniqueAcknowledgementNumber ~stdin_pipe =
+let start_client ~host ~port ~nick ~global_state ~stdin_pipe =
   Deferred.ignore_m (
   Monitor.protect (fun () ->
     printf "Client has joined the chat in address %s:%d with nickname %s\n%!" host port nick;
@@ -19,8 +20,8 @@ let start_client ~host ~port ~nick ~uniqueMessageNumber ~uniqueAcknowledgementNu
           printf "Connected socket address: %s\n" sock_str;
           printf "Reader type: %s\n" (Async.Reader.sexp_of_t reader |> Sexp.to_string_hum);
           printf "Writer type: %s\n" (Async.Writer.sexp_of_t writer |> Sexp.to_string_hum);
-          printf "The message id is: %d\n" !uniqueMessageNumber;
-          printf "The acknowledgement id is: %d\n" !uniqueAcknowledgementNumber;
+          printf "The message id is: %d\n" !(global_state.uniqueMessageNumber);
+          printf "The acknowledgement id is: %d\n" !(global_state.uniqueAcknowledgementNumber);
 
           printf "Waiting for server to acknowledge connection...\n%!";
 

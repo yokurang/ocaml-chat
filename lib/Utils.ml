@@ -38,14 +38,14 @@ let calculate_rtt (sent_timestamp_str : string) (received_timestamp_str : string
   |> Float.to_string
 
 (* the invariant in our chat application *)
-let is_message_id_equal_acknowledgement_id ~uniqueMessageNumber ~uniqueAcknowledgementNumber : bool =
-  if !uniqueMessageNumber = !uniqueAcknowledgementNumber
+let is_message_id_equal_acknowledgement_id ~global_state : bool =
+  if !(global_state.uniqueMessageNumber) = !(global_state.uniqueAcknowledgementNumber)
   then
-    let log_message = sprintf "Message ID %d is equal to acknowledgement ID %d" !uniqueMessageNumber !uniqueAcknowledgementNumber in
+    let log_message = sprintf "Message ID %d is equal to acknowledgement ID %d" !(global_state.uniqueMessageNumber) !(global_state.uniqueAcknowledgementNumber) in
     let () = print_endline (pretty_info_message_string log_message) in
     true
   else
-    let log_message = sprintf "Message ID %d is not equal to acknowledgement ID %d" !uniqueMessageNumber !uniqueAcknowledgementNumber in
+    let log_message = sprintf "Message ID %d is not equal to acknowledgement ID %d" !(global_state.uniqueMessageNumber) !(global_state.uniqueAcknowledgementNumber) in
     let () = print_endline (pretty_info_message_string log_message) in
     false
 
@@ -127,3 +127,65 @@ let print_disconnected_message (nick : string) : unit =
   let disconnected_message = pretty_info_message_string message in
   printf "%s" disconnected_message;)
 
+let show_server_nickname ~global_state =
+  match !(global_state.server_nickname) with
+  | None -> "THE DEATH STAR"
+  | Some nickname -> nickname
+
+let show_client_nickname ~global_state =
+  match !(global_state.client_nickname) with
+  | None -> "THE MILLENIUM FALCON"
+  | Some nickname -> nickname
+
+let show_message_sender ~global_state (given_message : message) : string =
+  match given_message with
+  | Message {message_from; _} ->
+    begin
+      match message_from with
+      | Server -> show_server_nickname ~global_state
+      | Client -> show_client_nickname ~global_state
+    end
+  | _ -> 
+    let error_message = pretty_error_message_string "Cannot show message sender from non-message" in
+    failwith error_message  (* No action for other message types *)
+
+let show_message_receiver ~global_state (given_message : message) : string =
+  match given_message with
+  | Message {message_to; _} ->
+    begin
+      match message_to with
+      | Server -> show_server_nickname ~global_state
+      | Client -> show_client_nickname ~global_state
+    end
+  | _ -> 
+    let error_message = pretty_error_message_string "Cannot show message receiver from non-message" in
+    failwith error_message  (* No action for other message types *)
+
+let print_message_received ~global_state (_addr : string) (given_message: message) =
+  match given_message with
+  | Message {message_id; timestamp; _} ->
+    let pretty_date = pretty_date_from_timestamp_str timestamp in
+    let message_sender = show_message_sender ~global_state given_message in
+    let message_receiver = show_message_receiver ~global_state given_message in
+    printf "[%s:Message Received] [%s] - Message ID: %d, From: %s, To: %s\n" 
+      _addr pretty_date message_id message_sender message_receiver
+  | _ -> 
+    begin 
+      let error_message = pretty_error_message_string "Cannot pretty print non-message" in
+      printf "%s" error_message;
+    end
+
+let print_acknowledgement_received ~global_state (_addr : string) (given_message: message) (acknowledged_timestamp : string)=
+  match given_message with
+  | Acknowledgement {acknowledgement_id; message_id; message_timestamp; _} ->
+    let pretty_date = pretty_date_from_timestamp_str message_timestamp in
+    let message_sender = show_message_sender ~global_state given_message in
+    let message_receiver = show_message_receiver ~global_state given_message in
+    let rtt = calculate_rtt message_timestamp acknowledged_timestamp in
+    printf "[%s:Acknowledgement Received] [%s] [RTT:%s seconds] - Ack ID: %d, Message ID: %d, From: %s, To: %s\n" 
+      _addr pretty_date rtt acknowledgement_id message_id message_sender message_receiver
+  | _ -> 
+    begin
+      let error_message = pretty_error_message_string "Cannot pretty print non-acknowledgement" in
+      printf "%s" error_message
+    end

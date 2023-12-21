@@ -1,8 +1,9 @@
 open Core
 open Async
-open Util
+open Utils
+open DataTypes
 
-let start_server ~port ~nick ~uniqueMessageNumber ~uniqueAcknowledgementNumber ~stdin_pipe =
+let start_server ~port ~nick ~global_state ~stdin_pipe =
   Deferred.ignore_m (
   Monitor.protect (fun () ->
     printf "Starting server on port %d with nickname '%s'\n" port nick;
@@ -16,8 +17,8 @@ let start_server ~port ~nick ~uniqueMessageNumber ~uniqueAcknowledgementNumber ~
           printf "Connected socket address: %s\n" (Socket.Address.to_string _addr);
           printf "Reader type: %s\n" (Async.Reader.sexp_of_t reader |> Sexp.to_string_hum);
           printf "Writer type: %s\n" (Async.Writer.sexp_of_t writer |> Sexp.to_string_hum);
-          printf "The message id is: %d\n" !uniqueMessageNumber;
-          printf "The acknowledgement id is: %d\n" !uniqueAcknowledgementNumber;
+          printf "The message id is: %d\n" !(global_state.uniqueMessageNumber);
+          printf "The acknowledgement id is: %d\n" !(global_state.uniqueAcknowledgementNumber);
           Deferred.unit
         )
     ) >>= function

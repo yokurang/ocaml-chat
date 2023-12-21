@@ -1,3 +1,95 @@
+open InputOutputHandlers
+open Core
+open Async
+open DataTypes (* Assuming DataTypes contains the definition of `message` and `Fail` *)
+
+(* open InputOutputHandlers
+
+let mock_message = Message { 
+  message_id = 1;
+  message_content = Some "Hello world";
+  message_from = Server;
+  message_to = Client;
+  timestamp = Time_ns_unix.to_string (Time_ns_unix.now ());
+}
+
+(* let test_function () =
+  let reader, writer = Pipe.create () in
+  write_message writer mock_message;
+  Pipe.close writer;
+
+  (* Read from the pipe *)
+  Pipe.read reader >>= function
+  | `Ok message_read ->
+      printf "Read from pipe: %s\n" message_read;
+      Deferred.unit
+  | `Eof ->
+      printf "End of pipe reached.\n";
+      Deferred.unit *)
+  
+
+let test4 () =
+  let w = Lazy.force Writer.stdout in
+  let piped_w = Writer.pipe w in
+  write_message piped_w mock_message;
+  Writer.flushed w
+
+let () =
+  (* Start the Async scheduler and run the test function *)
+  printf "starting the test";
+  (* don't_wait_for (test_function ());
+  printf "starting test2";
+  don't_wait_for (test2 ());
+  printf "starting test3";
+  don't_wait_for (test3 ()); *)
+  printf "starting test4";
+  don't_wait_for (test4 ());
+  never_returns (Scheduler.go ())
+ *)
+
+
+
+
+
+(* to ensure total ordering of messages and
+  that count of messages = count of acknowledgements *)
+
+
+(* let send_maybe w msg =
+  if Writer.is_open w
+    then sexp_of_message msg |> Sexp.to_string_hum |> Writer.write_line w
+  (* then yojson_of_msg msg |> Yojson.Safe.to_string |> Writer.write_line w *)
+  else Out_channel.print_endline
+    "[Warning: the writer is closed. The remote server/client may have disconnected.]" *)
+
+(* let send_maybe w msg =
+  if Writer.is_open w
+    then sexp_of_message msg |> Sexp.to_string_hum |> Writer.write_line w
+  (* then yojson_of_msg msg |> Yojson.Safe.to_string |> Writer.write_line w *)
+  else Out_channel.print_endline
+    "[Warning: the writer is closed. The remote server/client may have disconnected.]" *)
+
+let test_function () =
+  let reader, writer = Pipe.create () in
+  let mock_message = Fail { error_message = "Test error" } in
+  write_message writer mock_message;
+  Pipe.close writer;
+
+  (* Read from the pipe *)
+  Pipe.read reader >>= function
+  | `Ok message_read ->
+      printf "Read from pipe: %s\n" message_read;
+      Deferred.unit
+  | `Eof ->
+      printf "End of pipe reached.\n";
+      Deferred.unit
+  
+let () =
+  (* Start the Async scheduler and run the test function *)
+  printf "starting the test";
+  don't_wait_for (test_function ());
+  never_returns (Scheduler.go ())
+
 (* let create_mock_pipes () =
   let reader_pipe, _writer = Pipe.create () in  (* Dummy reader pipe *)
   let writer_pipe, _ = Pipe.create () in        (* Actual writer pipe *)

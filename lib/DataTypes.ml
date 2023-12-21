@@ -13,6 +13,14 @@ type payloadSource =
   | Socket of payload
   | Stdin of payload
 
+type global_state = {
+  uniqueMessageNumber: int ref;
+  uniqueAcknowledgementNumber: int ref;
+  client_nickname: string option ref;
+  server_nickname: string option ref;
+  connection_address: string option ref;
+}
+
 type message =
 | Message of { (* a message contains the payload and its timestamp as a string for round-trip (RT) calculation and the author and recipient of the message *)
   message_content: string option;
