@@ -2,6 +2,7 @@ open Core
 open Async
 open DataTypes
 open Utils
+open InputOutputHandlers
 
 let start_server ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe =
   Deferred.ignore_m (
@@ -23,7 +24,7 @@ let start_server ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe =
           let () = global_state.client_connection_address := (Some client_socket_addr_str) in
           let socket_reader_pipe = Reader.pipe reader in
           let socket_writer_pipe = Writer.pipe writer in
-          InputOutputHandlers.handle_connection
+          handle_connection
             ~global_state
             ~sender_type
             ~socket_reader_pipe: socket_reader_pipe

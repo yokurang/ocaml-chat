@@ -2,6 +2,7 @@ open Core
 open Async
 open Utils
 open DataTypes
+open InputOutputHandlers
 
 let start_client ~host ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe =
   Deferred.ignore_m (
@@ -19,8 +20,8 @@ let start_client ~host ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe
           let client_connection_message = ClientConnection { client_nickname = nick } in
           let socket_reader_pipe = Reader.pipe reader in
           let socket_writer_pipe = Writer.pipe writer in
-          let () = InputOutputHandlers.write_message socket_writer_pipe client_connection_message in
-          InputOutputHandlers.handle_connection
+          let () = write_message socket_writer_pipe client_connection_message in
+          handle_connection
             ~global_state
             ~sender_type
             ~socket_reader_pipe
