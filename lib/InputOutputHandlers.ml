@@ -54,7 +54,7 @@ let parse_string_to_message_sexp (message : string) : message =
     let error_message = pretty_error_message_string (Exn.to_string exn) in
     Fail { error_message = error_message }
 
-let handle_socket_message message ~global_state ~sender_type writer_pipe : unit =
+let handle_socket_message message ~global_state ~sender_type writer_pipe : bool Deferred.t =
   let time_ns_now = Time_ns_unix.to_string (Time_ns_unix.now ()) in
   match message with
   | Acknowledgement { message_content; message_from; message_to; message_timestamp } ->
@@ -67,7 +67,7 @@ let handle_socket_message message ~global_state ~sender_type writer_pipe : unit 
       | Client -> show_client_connection_address ~global_state
       | Server -> show_server_connection_address ~global_state
     in let () = print_acknowledgement connection_addres ack time_ns_now in
-    print_acknowledgement_log ~global_state connection_addres ack time_ns_now
+    let () = print_acknowledgement_log ~global_state connection_addres ack time_ns_now in return true
     | Message { message_content; message_from; message_to; timestamp } ->
     let msg = Message {
       message_content;
@@ -76,7 +76,7 @@ let handle_socket_message message ~global_state ~sender_type writer_pipe : unit 
       timestamp;
     } in let () = print_chat_message ~global_state ~sender_type msg in
       let ack_message = create_acknowledgement_from_message msg in
-      write_message writer_pipe ack_message
+      let () = write_message writer_pipe ack_message in return true
   | ClientConnection { client_nickname } ->
     let client_connection_address = show_client_connection_address ~global_state in
     let connection_request_message = Printf.sprintf "\"%s\" has connected to %s" client_nickname client_connection_address in
@@ -84,14 +84,14 @@ let handle_socket_message message ~global_state ~sender_type writer_pipe : unit 
     let () = print_endline pretty_connection_request_message in
     let server_nickname = show_server_nickname ~global_state in
     let serverAck = ServerConnection { server_nickname = server_nickname } in
-    write_message writer_pipe serverAck
+    let () = write_message writer_pipe serverAck in return true
   | ServerConnection { server_nickname } ->
     let server_connection_address = show_server_connection_address ~global_state in
     let server_connection_message = Printf.sprintf "\"%s\" has connected to %s" server_nickname server_connection_address in
     let pretty_server_connection_message = pretty_info_message_string server_connection_message in
-    print_endline pretty_server_connection_message
+    let () = print_endline pretty_server_connection_message in return true
   | Fail { error_message } ->
-    print_endline (pretty_error_message_string error_message)
+    let () = print_endline (pretty_error_message_string error_message) in return false
 
 let handle_socket_payload stdin_payload ~global_state ~sender_type writer_pipe : bool Deferred.t =
   match stdin_payload with
@@ -100,8 +100,7 @@ let handle_socket_payload stdin_payload ~global_state ~sender_type writer_pipe :
   | InputOk message -> 
     try_with (fun () ->
       let message = parse_string_to_message_sexp message in
-      let () = handle_socket_message message ~global_state ~sender_type writer_pipe in
-      return true
+      handle_socket_message message ~global_state ~sender_type writer_pipe
     ) >>= function
     | Ok success -> return success
     | Error exn ->

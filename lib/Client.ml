@@ -11,15 +11,15 @@ let start_client ~host ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe
     try_with (fun () ->
       Tcp.with_connection
         (Tcp.Where_to_connect.of_host_and_port { host; port })
-        ?timeout:(Some (Time_float_unix.Span.of_sec 10.))
-        ?interrupt:(Some (Deferred.never ()))
+        ?timeout:(Some (Time_float_unix.Span.of_sec 5.))
         (fun _sock reader writer ->
-          let server_socket_addr_str = Socket.getpeername _sock |> Socket.Address.to_string in
-          let () = global_state.server_connection_address := (Some server_socket_addr_str) in
           let () = printf "\nWaiting to connect to server...\n%!" in
-          let client_connection_message = ClientConnection { client_nickname = nick } in
+          let server_socket_addr = Socket.getpeername _sock in
+          let server_socket_addr_str = Socket.Address.to_string server_socket_addr in
+          let () = global_state.server_connection_address := (Some server_socket_addr_str) in
           let socket_reader_pipe = Reader.pipe reader in
           let socket_writer_pipe = Writer.pipe writer in
+          let client_connection_message = ClientConnection { client_nickname = nick } in
           let () = write_message socket_writer_pipe client_connection_message in
           handle_connection
             ~global_state
@@ -30,8 +30,7 @@ let start_client ~host ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe
         ) 
     ) >>= function
     | Ok () ->
-      let%bind () = Deferred.return (Pipe.close_read stdin_reader_pipe) in
-      Shutdown.exit 0
+      Deferred.unit
     | Error exn ->
       let%bind () = Deferred.return (Pipe.close_read stdin_reader_pipe) in
       begin match Monitor.extract_exn exn with
