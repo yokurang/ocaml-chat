@@ -1,12 +1,11 @@
 open Async
 open DataTypes
 
-let global_state = {
-  uniqueMessageNumber = ref 0;
-  uniqueAcknowledgementNumber = ref 0;
+let global_state: global_state = {
   client_nickname = ref None;
   server_nickname = ref None;
-  connection_address = ref None;
+  client_connection_address = ref None;
+  server_connection_address = ref None;
 }
 
 let () : unit =
@@ -24,23 +23,25 @@ let () : unit =
             [port] will default to 8765 if not provided.
 
             For example, you can run the following command to start the server:
-            dune exec -- one_on_one_chat server -port 8765 -nick \"ServerNickname\"
+            dune exec -- one_on_one_chat server -port 8765 -nick annonymous_andy
           ")
           (let%map_open port = flag "-port" 
             (optional_with_default 8765 int) 
             ~doc:"PORT The port number of the server (default: 8765)"
             and nick = flag "-nick"
-            (optional_with_default "anonymous alan" string) 
-            ~doc:"NICK The nickname for the chat session (default: anonymous andy)"
+            (optional_with_default "anonymous_andy" string) 
+            ~doc:"NICK The nickname for the chat session (default: anonymous_andy)
+                  Note: If you want to use spaces, please enclose the nickname in quotes.
+                  For example, -nick \"anonymous andy\""
             in
             fun () ->
               let stdin_reader_pipe = (Reader.pipe (Lazy.force Reader.stdin)) in
-              let participant_type = Server in
+              let sender_type = Server in
               Server.start_server
                 ~port
                 ~nick
                 ~global_state
-                ~participant_type
+                ~sender_type
                 ~stdin_reader_pipe
           )
       );
@@ -56,7 +57,7 @@ let () : unit =
             8765 if not provided.
 
             For example, you can run the following command to start the client:
-            dune exec -- one_on_one_chat client -host 127.0.0.1 -port 8765 -nick \"ClientNickname\"
+            dune exec -- one_on_one_chat client -host 127.0.0.1 -port 8765 -nick annonymous_alan
           ")
           (let%map_open host = flag "-host"
             (optional_with_default "127.0.0.1" string) 
@@ -65,18 +66,20 @@ let () : unit =
             (optional_with_default 8765 int) 
             ~doc:"PORT The port number of the server (default: 8765)"
             and nick = flag "-nick"
-            (optional_with_default "anonymous alan" string) 
-            ~doc:"NICK The nickname for the chat session (default: anonymous alan)"
+            (optional_with_default "anonymous_alan" string) 
+            ~doc:"NICK The nickname for the chat session (default: anonymous_alan)
+                  Note: If you want to use spaces, please enclose the nickname in quotes.
+                  For example, -nick \"anonymous alan\""
             in
             fun () ->
-              let participant_type = Client in
               let stdin_reader_pipe = (Reader.pipe (Lazy.force Reader.stdin)) in
+              let sender_type = Client in
               Client.start_client
                 ~host
                 ~port
                 ~nick
                 ~global_state
-                ~participant_type
+                ~sender_type
                 ~stdin_reader_pipe
           )
       );

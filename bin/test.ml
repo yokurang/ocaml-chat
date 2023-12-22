@@ -10,7 +10,7 @@ open DataTypes (* Assuming DataTypes contains the definition of `message` and `F
     uniqueAcknowledgementNumber = ref 0;
     client_nickname = ref (Some "ClientNickname");
     server_nickname = ref (Some "ServerNickname");
-    connection_address = ref (Some "127.0.0.1:8000");
+    client_connection_address = ref (Some "127.0.0.1:8000");
   } in
 
   (* Simulate receiving an InputOk payload *)
@@ -19,7 +19,7 @@ open DataTypes (* Assuming DataTypes contains the definition of `message` and `F
   let payload = InputOk "Test message" in
   let participant_type = Client in (* Or Server, depending on the test case *)
   print_endline "Testing InputOk payload...\n";
-  handle_user_payload payload piped_w ~global_state:mock_global_state ~participant_type
+  handle_user_payload payload piped_w ~global_state:mock_global_state ~sender_type
 
 let () =
   Printf.printf "Staring test...\n";

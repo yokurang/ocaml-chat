@@ -1,15 +1,13 @@
 open Core
 open Async
+open DataTypes
 open Utils
 
-let start_server ~port ~nick ~global_state ~participant_type ~stdin_reader_pipe =
+let start_server ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe =
   Deferred.ignore_m (
   Monitor.protect (fun () ->
-    let start_up_message ~nick ~port =
-      let header = Printf.sprintf "\n|| Server Startup Information ||\n" in
-      let info_message = Printf.sprintf "Server '%s' has started on port %d.\nAwaiting connections..." nick port in
-      Printf.sprintf "%s\n%s\n" header info_message
-    in let startup_message = start_up_message ~nick ~port in
+    let () = global_state.server_nickname := (Some nick) in
+    let startup_message = start_up_message ~nick ~port in
     print_endline startup_message;
     try_with (fun () ->
       Tcp.Server.create
@@ -18,14 +16,13 @@ let start_server ~port ~nick ~global_state ~participant_type ~stdin_reader_pipe 
         (* ~drop_incoming_connections:true *)
         (Tcp.Where_to_listen.of_port port)
         (fun _addr reader writer ->
-          let socket_addr_str = Socket.Address.to_string _addr in
-          let addr_log = pretty_info_message_string (Printf.sprintf "The Server has the socket address: %s" socket_addr_str) in
-          let () = print_endline addr_log in
+          let client_socket_addr_str = Socket.Address.to_string _addr in
+          let () = global_state.client_connection_address := (Some client_socket_addr_str) in
           let socket_reader_pipe = Reader.pipe reader in
           let socket_writer_pipe = Writer.pipe writer in
           InputOutputHandlers.handle_connection
             ~global_state
-            ~participant_type
+            ~sender_type
             ~socket_reader_pipe: socket_reader_pipe
             ~socket_writer_pipe: socket_writer_pipe
             ~stdin_reader_pipe: stdin_reader_pipe

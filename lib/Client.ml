@@ -3,26 +3,26 @@ open Async
 open Utils
 open DataTypes
 
-let start_client ~host ~port ~nick ~global_state ~participant_type ~stdin_reader_pipe =
+let start_client ~host ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe =
   Deferred.ignore_m (
   Monitor.protect (fun () ->
-    (* Printf.printf "Client has joined the chat in address %s:%d with nickname %s\n%!" host port nick; *)
+    let () = global_state.client_nickname := (Some nick) in
     try_with (fun () ->
       Tcp.with_connection
         (Tcp.Where_to_connect.of_host_and_port { host; port })
         ?timeout:(Some (Time_float_unix.Span.of_sec 5.))
         ?interrupt:(Some (Deferred.never ()))
         (fun _sock reader writer ->
-          let sock_addr = Socket.getpeername _sock in
-          let sock_str = Socket.Address.to_string sock_addr in
-          let () = global_state.connection_address := (Some sock_str) in
-          let () = print_connected_message nick ~global_state in
-          let () = printf "\n\nnWaiting for server to acknowledge connection...\n\n%!" in
+          let server_socket_addr_str = Socket.getpeername _sock |> Socket.Address.to_string in
+          let () = global_state.server_connection_address := (Some server_socket_addr_str) in
+          let () = printf "\nWaiting for server to acknowledge connection...\n%!" in
+          let connection_request_from = ConnectionRequest { user_nickname = nick } in
           let socket_reader_pipe = Reader.pipe reader in
           let socket_writer_pipe = Writer.pipe writer in
+          let () = InputOutputHandlers.write_message socket_writer_pipe connection_request_from in
           InputOutputHandlers.handle_connection
             ~global_state
-            ~participant_type
+            ~sender_type
             ~socket_reader_pipe
             ~socket_writer_pipe
             ~stdin_reader_pipe
