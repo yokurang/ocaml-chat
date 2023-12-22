@@ -34,12 +34,14 @@ let () : unit =
             ~doc:"NICK The nickname for the chat session (default: anonymous andy)"
             in
             fun () ->
-              let stdin_pipe = (Reader.pipe (Lazy.force Reader.stdin)) in
+              let stdin_reader_pipe = (Reader.pipe (Lazy.force Reader.stdin)) in
+              let participant_type = Server in
               Server.start_server
                 ~port
                 ~nick
                 ~global_state
-                ~stdin_pipe
+                ~participant_type
+                ~stdin_reader_pipe
           )
       );
 
@@ -67,13 +69,15 @@ let () : unit =
             ~doc:"NICK The nickname for the chat session (default: anonymous alan)"
             in
             fun () ->
-              let stdin_pipe = (Reader.pipe (Lazy.force Reader.stdin)) in
+              let participant_type = Client in
+              let stdin_reader_pipe = (Reader.pipe (Lazy.force Reader.stdin)) in
               Client.start_client
                 ~host
                 ~port
                 ~nick
                 ~global_state
-                ~stdin_pipe
+                ~participant_type
+                ~stdin_reader_pipe
           )
       );
     ]

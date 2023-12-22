@@ -3,6 +3,30 @@ open Core
 open Async
 open DataTypes (* Assuming DataTypes contains the definition of `message` and `Fail` *)
 
+(* let test_handle_user_payload () =
+  (* Create a mock global state *)
+  let mock_global_state = {
+    uniqueMessageNumber = ref 0;
+    uniqueAcknowledgementNumber = ref 0;
+    client_nickname = ref (Some "ClientNickname");
+    server_nickname = ref (Some "ServerNickname");
+    connection_address = ref (Some "127.0.0.1:8000");
+  } in
+
+  (* Simulate receiving an InputOk payload *)
+  let w = Lazy.force Writer.stdout in
+  let piped_w = Writer.pipe w in
+  let payload = InputOk "Test message" in
+  let participant_type = Client in (* Or Server, depending on the test case *)
+  print_endline "Testing InputOk payload...\n";
+  handle_user_payload payload piped_w ~global_state:mock_global_state ~participant_type
+
+let () =
+  Printf.printf "Staring test...\n";
+  don't_wait_for (test_handle_user_payload ());
+  never_returns (Scheduler.go ()) *)
+
+
 (* open InputOutputHandlers
 
 let mock_message = Message { 
@@ -21,10 +45,10 @@ let mock_message = Message {
   (* Read from the pipe *)
   Pipe.read reader >>= function
   | `Ok message_read ->
-      printf "Read from pipe: %s\n" message_read;
+      Printf.printf "Read from pipe: %s\n" message_read;
       Deferred.unit
   | `Eof ->
-      printf "End of pipe reached.\n";
+      Printf.printf "End of pipe reached.\n";
       Deferred.unit *)
   
 
@@ -36,13 +60,13 @@ let test4 () =
 
 let () =
   (* Start the Async scheduler and run the test function *)
-  printf "starting the test";
+  Printf.printf "starting the test";
   (* don't_wait_for (test_function ());
-  printf "starting test2";
+  Printf.printf "starting test2";
   don't_wait_for (test2 ());
-  printf "starting test3";
+  Printf.printf "starting test3";
   don't_wait_for (test3 ()); *)
-  printf "starting test4";
+  Printf.printf "starting test4";
   don't_wait_for (test4 ());
   never_returns (Scheduler.go ())
  *)
@@ -78,15 +102,15 @@ let test_function () =
   (* Read from the pipe *)
   Pipe.read reader >>= function
   | `Ok message_read ->
-      printf "Read from pipe: %s\n" message_read;
+      Printf.printf "Read from pipe: %s\n" message_read;
       Deferred.unit
   | `Eof ->
-      printf "End of pipe reached.\n";
+      Printf.printf "End of pipe reached.\n";
       Deferred.unit
   
 let () =
   (* Start the Async scheduler and run the test function *)
-  printf "starting the test";
+  Printf.printf "starting the test";
   don't_wait_for (test_function ());
   never_returns (Scheduler.go ())
 

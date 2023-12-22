@@ -1,8 +1,8 @@
 open Sexplib.Std
 
 type payload =
-  | Eof
-  | Ok of string
+  | InputEof
+  | InputOk of string
 
 type participant =
   | Server
