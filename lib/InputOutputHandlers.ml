@@ -12,7 +12,7 @@ let write_message (w : string Pipe.Writer.t) (given_message : message) : unit =
   | _ ->
     if not (Pipe.is_closed w)
     then
-      sexp_of_message given_message |> Sexp.to_string_hum |> Pipe.write w >>>
+      sexp_of_message given_message |> Sexp.to_string |> Pipe.write w >>>
       fun () ->()
     else 
       let error_message = "Writer pipe is closed" in
@@ -45,31 +45,30 @@ let handle_stdin_payload payload ~sender_type writer_pipe : unit Deferred.t =
       print_endline error_message;
       return ()
 
-let parse_messages message =
+let parse_string_to_message_sexp (message : string) : message =
   try 
-    let sexps = Sexp.of_string_many message in
-    List.map sexps ~f:message_of_sexp
-  with
+    let sexp = Sexp.of_string message in
+    message_of_sexp sexp
+  with 
   | exn -> 
     let error_message = pretty_error_message_string (Exn.to_string exn) in
-    let error_payload = Fail { error_message = error_message } in
-    [error_payload]
+    Fail { error_message = error_message }
 
-let rec handle_socket_message messages ~global_state ~sender_type writer_pipe : bool Deferred.t =
+let handle_socket_message message ~global_state ~sender_type writer_pipe : unit =
   let time_ns_now = Time_ns_unix.to_string (Time_ns_unix.now ()) in
-  match messages with
-  | [] -> return true
-  | Acknowledgement { message_content; message_from; message_to; message_timestamp } :: tl ->
+  match message with
+  | Acknowledgement { message_content; message_from; message_to; message_timestamp } ->
     let ack = Acknowledgement {
       message_content;
       message_from;
       message_to;
       message_timestamp;
-    } in let connection_addres = show_connection_address ~global_state ~sender_type in
-    let () = print_acknowledgement connection_addres ack time_ns_now in
-    let () = print_acknowledgement_log ~global_state connection_addres ack time_ns_now in
-    handle_socket_message tl ~global_state ~sender_type writer_pipe
-  | Message { message_content; message_from; message_to; timestamp } :: tl ->
+    } in let connection_addres = match sender_type with
+      | Client -> show_client_connection_address ~global_state
+      | Server -> show_server_connection_address ~global_state
+    in let () = print_acknowledgement connection_addres ack time_ns_now in
+    print_acknowledgement_log ~global_state connection_addres ack time_ns_now
+    | Message { message_content; message_from; message_to; timestamp } ->
     let msg = Message {
       message_content;
       message_from;
@@ -77,26 +76,22 @@ let rec handle_socket_message messages ~global_state ~sender_type writer_pipe : 
       timestamp;
     } in let () = print_chat_message ~global_state ~sender_type msg in
       let ack_message = create_acknowledgement_from_message msg in
-      let () = write_message writer_pipe ack_message in
-      handle_socket_message tl ~global_state ~sender_type writer_pipe
-  | ClientConnection { client_nickname } :: tl ->
+      write_message writer_pipe ack_message
+  | ClientConnection { client_nickname } ->
     let client_connection_address = show_client_connection_address ~global_state in
     let connection_request_message = Printf.sprintf "\"%s\" has connected to %s" client_nickname client_connection_address in
     let pretty_connection_request_message = pretty_info_message_string connection_request_message in
     let () = print_endline pretty_connection_request_message in
     let server_nickname = show_server_nickname ~global_state in
     let serverAck = ServerConnection { server_nickname = server_nickname } in
-    let () = write_message writer_pipe serverAck in
-    handle_socket_message tl ~global_state ~sender_type writer_pipe
-  | ServerConnection { server_nickname } :: tl ->
+    write_message writer_pipe serverAck
+  | ServerConnection { server_nickname } ->
     let server_connection_address = show_server_connection_address ~global_state in
     let server_connection_message = Printf.sprintf "\"%s\" has connected to %s" server_nickname server_connection_address in
     let pretty_server_connection_message = pretty_info_message_string server_connection_message in
-    let () = print_endline pretty_server_connection_message in
-    handle_socket_message tl ~global_state ~sender_type writer_pipe
-  | Fail { error_message } :: tl ->
-    let () = print_endline (pretty_error_message_string error_message) in
-    handle_socket_message tl ~global_state ~sender_type writer_pipe
+    print_endline pretty_server_connection_message
+  | Fail { error_message } ->
+    print_endline (pretty_error_message_string error_message)
 
 let handle_socket_payload stdin_payload ~global_state ~sender_type writer_pipe : bool Deferred.t =
   match stdin_payload with
@@ -104,9 +99,9 @@ let handle_socket_payload stdin_payload ~global_state ~sender_type writer_pipe :
     return false
   | InputOk message -> 
     try_with (fun () ->
-      let messages = parse_messages message in
-      handle_socket_message messages ~global_state ~sender_type writer_pipe >>| fun _ ->
-      true 
+      let message = parse_string_to_message_sexp message in
+      let () = handle_socket_message message ~global_state ~sender_type writer_pipe in
+      return true
     ) >>= function
     | Ok success -> return success
     | Error exn ->
@@ -129,8 +124,10 @@ let rec handle_connection ~global_state ~sender_type ~socket_reader_pipe ~socket
   | Socket InputEof | Stdin InputEof -> 
     let my_nickname = show_nickname ~global_state ~sender_type in 
     let get_recipient = show_recipient_type ~sender_type in
-    let recipient_connection_address = show_connection_address ~global_state ~sender_type:get_recipient in
-    let disconnected_message = Printf.sprintf "\"%s\" has disconnected from %s" my_nickname recipient_connection_address in
+    let recipient_connection_address = match get_recipient with
+      | Client -> show_client_connection_address ~global_state
+      | Server -> show_server_connection_address ~global_state
+    in let disconnected_message = Printf.sprintf "\"%s\" has disconnected from %s" my_nickname recipient_connection_address in
     let pretty_disconnected_message = pretty_info_message_string disconnected_message in
     let () = print_endline pretty_disconnected_message in
     return ()

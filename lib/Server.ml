@@ -16,7 +16,7 @@ let start_server ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe =
       Tcp.Server.create
         ~on_handler_error:`Raise
         ~max_connections:1
-        (* ~drop_incoming_connections:true *) (* Do not uncomment this: I do not know what this does really  *)
+        (* ~drop_incoming_connections:false *)
         (Tcp.Where_to_listen.of_port port)
         (fun _addr reader writer ->
           let client_socket_addr_str = Socket.Address.to_string _addr in

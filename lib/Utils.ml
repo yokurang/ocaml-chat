@@ -16,7 +16,7 @@ let pretty_date_from_timestamp_str (timestamp_str : string) : string =
 let pretty_log_message_string (log_level : string) (message : string) : string =
   let timestamp = Time_ns_unix.to_string (Time_ns.now ()) in
   let pretty_date = pretty_date_from_timestamp_str timestamp in
-  Printf.sprintf "\n[%s] [%s] - %s\n" log_level pretty_date message
+  sprintf "\n[%s] [%s] - %s\n" log_level pretty_date message
 
 (** A function for pretty printing info messages.
     You can customize the message to be printed. *)
@@ -98,11 +98,6 @@ let show_server_connection_address ~global_state : string =
   | None -> "HOW CAN YOU NOT KNOW YOUR OWN HOME?!"
   | Some address -> address
 
-let show_connection_address ~global_state ~sender_type : string =
-  match sender_type with
-  | Server -> show_server_connection_address ~global_state
-  | Client -> show_client_connection_address ~global_state
-
 (** A function to show the server nickname *)
 let show_server_nickname ~global_state : string =
   match !(global_state.server_nickname) with
@@ -173,8 +168,8 @@ let show_message_timestamp (given_message : message) : string =
 let print_acknowledgement (connection_addr : string) (given_message: message) (acknowledged_timestamp : string) : unit =
   let message_timestamp = show_message_timestamp given_message in
   let rtt = calculate_rtt message_timestamp acknowledged_timestamp in
-  Printf.printf "[%s:ACK] - RTT: %s ms, Status: Message Received"
-    connection_addr rtt
+  printf "[%s:ACK] - RTT: %s ms, Status: Message Received"
+  connection_addr rtt
 
 (** A function to print a complete log of an acknowledgement *)
 let print_acknowledgement_log ~global_state (connection_addr : string) (given_message: message) (acknowledged_timestamp : string) =
@@ -200,5 +195,5 @@ let print_chat_message ~global_state ~sender_type (given_message : message) =
   let timestamp = show_message_timestamp given_message in
   let content = show_message_content given_message in
   let message_sender = show_sender ~global_state given_message in
-  printf "[%s: Chat Message] [%s]: %s says \"%s\"" 
+  printf "[%s: Chat Message] [%s]: %s says %s" 
   connection_address timestamp message_sender content
