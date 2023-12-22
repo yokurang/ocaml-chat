@@ -10,16 +10,16 @@ let start_client ~host ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe
     try_with (fun () ->
       Tcp.with_connection
         (Tcp.Where_to_connect.of_host_and_port { host; port })
-        ?timeout:(Some (Time_float_unix.Span.of_sec 5.))
+        ?timeout:(Some (Time_float_unix.Span.of_sec 10.))
         ?interrupt:(Some (Deferred.never ()))
         (fun _sock reader writer ->
           let server_socket_addr_str = Socket.getpeername _sock |> Socket.Address.to_string in
           let () = global_state.server_connection_address := (Some server_socket_addr_str) in
-          let () = printf "\nWaiting for server to acknowledge connection...\n%!" in
-          let connection_request_from = ConnectionRequest { user_nickname = nick } in
+          let () = printf "\nWaiting to connect to server...\n%!" in
+          let client_connection_message = ClientConnection { client_nickname = nick } in
           let socket_reader_pipe = Reader.pipe reader in
           let socket_writer_pipe = Writer.pipe writer in
-          let () = InputOutputHandlers.write_message socket_writer_pipe connection_request_from in
+          let () = InputOutputHandlers.write_message socket_writer_pipe client_connection_message in
           InputOutputHandlers.handle_connection
             ~global_state
             ~sender_type
@@ -29,9 +29,6 @@ let start_client ~host ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe
         ) 
     ) >>= function
     | Ok () ->
-      let info_message = Printf.sprintf "Server %s has disconnected from the chat on %s:%d\n%!" nick host port in
-      let pretty_info_message = pretty_info_message_string info_message in
-      let () = print_endline pretty_info_message in
       let%bind () = Deferred.return (Pipe.close_read stdin_reader_pipe) in
       Shutdown.exit 0
     | Error exn ->
@@ -49,7 +46,7 @@ let start_client ~host ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe
       end
   )
   ~finally:(fun () ->
-    let info_message = Printf.sprintf "Server %s has disconnected from the chat on %s:%d\n%!" nick host port in
+    let info_message = Printf.sprintf "Closing connection..." in
     let pretty_info_message = pretty_info_message_string info_message in
     let () = print_endline pretty_info_message in
     Deferred.unit

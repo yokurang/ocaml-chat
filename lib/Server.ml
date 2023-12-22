@@ -7,13 +7,16 @@ let start_server ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe =
   Deferred.ignore_m (
   Monitor.protect (fun () ->
     let () = global_state.server_nickname := (Some nick) in
-    let startup_message = start_up_message ~nick ~port in
-    print_endline startup_message;
+    let header = sprintf "\n|| Server Startup Information ||\n" in
+    let info_message = sprintf "Server '%s' has started on port %d. Awaiting connections..." nick port in
+    let pretty_info_message = pretty_info_message_string info_message in
+    let start_up_message = sprintf "%s\n%s\n" header pretty_info_message in
+    print_endline start_up_message;
     try_with (fun () ->
       Tcp.Server.create
         ~on_handler_error:`Raise
         ~max_connections:1
-        (* ~drop_incoming_connections:true *)
+        (* ~drop_incoming_connections:true *) (* Do not uncomment this: I do not know what this does really  *)
         (Tcp.Where_to_listen.of_port port)
         (fun _addr reader writer ->
           let client_socket_addr_str = Socket.Address.to_string _addr in
@@ -45,7 +48,7 @@ let start_server ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe =
       end
   )
   ~finally:(fun () ->
-    let info_message = Printf.sprintf "Server on port %d has stopped.\n" port in
+    let info_message = Printf.sprintf "Shutting down..." in
     let pretty_info_message = pretty_info_message_string info_message in
     let () = print_endline pretty_info_message in
     Deferred.unit

@@ -42,7 +42,7 @@ let parse_timestamp_str_to_ns (ts_str : string) : Time_ns.t =
   | Invalid_argument _ -> 
     failwith "Invalid timestamp format"
 
-(** A function for calculating the RTT from a sent timestamp and a received timestamp *)
+(** A function for calculating the RTT between two timestamps *)
 let calculate_rtt (sent_timestamp_str : string) (received_timestamp_str : string) : string =
   let sent_timestamp = parse_timestamp_str_to_ns sent_timestamp_str in
   let received_timestamp = parse_timestamp_str_to_ns received_timestamp_str in
@@ -52,7 +52,11 @@ let calculate_rtt (sent_timestamp_str : string) (received_timestamp_str : string
   |> Float.to_string
 
 (** A function for creating a new message *)
-let create_message ~content ~message_from ~message_to ~timestamp : message =
+let create_message
+  ~(content : string option)
+  ~(message_from : participant)
+  ~(message_to : participant)
+  ~(timestamp : string) : message =
   (* let () = print_endline (pretty_debug_message_string "Message created") in *)
   Message {
     message_content = content;
@@ -77,34 +81,45 @@ let create_acknowledgement_from_message (given_message : message) : message =
     failwith error_message  (* No action for other message types *)  
 
 (** A function to show who is the recipient of a message *)
-let show_recipient_type ~sender_type =
+let show_recipient_type ~sender_type : participant =
   match sender_type with
   | Server -> Client
   | Client -> Server
 
 (** A function to show the client connection address *)
-let show_client_connection_address ~global_state =
+let show_client_connection_address ~global_state : string =
   match !(global_state.client_connection_address) with
   | None -> "HOW CAN YOU NOT KNOW YOUR OWN ADDRESS?!"
   | Some address -> address
 
 (** A function to show the server connection address *)
-let show_server_connection_address ~global_state =
+let show_server_connection_address ~global_state : string =
   match !(global_state.server_connection_address) with
   | None -> "HOW CAN YOU NOT KNOW YOUR OWN HOME?!"
   | Some address -> address
 
+let show_connection_address ~global_state ~sender_type : string =
+  match sender_type with
+  | Server -> show_server_connection_address ~global_state
+  | Client -> show_client_connection_address ~global_state
+
 (** A function to show the server nickname *)
-let show_server_nickname ~global_state =
+let show_server_nickname ~global_state : string =
   match !(global_state.server_nickname) with
   | None -> "anonymous_andy"
   | Some nickname -> nickname
 
 (** A function to show the client nickname *)
-let show_client_nickname ~global_state =
+let show_client_nickname ~global_state : string =
   match !(global_state.client_nickname) with
   | None -> "anonymous_alan"
   | Some nickname -> nickname
+
+(** A function to show the nickname of the current sender *)
+let show_nickname ~global_state ~sender_type : string =
+  match sender_type with
+  | Server -> show_server_nickname ~global_state
+  | Client -> show_client_nickname ~global_state
 
 (** A function to show the sender of a message *)
 let show_sender ~global_state (given_message : message) : string =
@@ -135,7 +150,7 @@ let show_receiver ~global_state (given_message : message) : string =
 (** A function to show the content of a message *)
 let show_message_content (given_message : message) : string =
   match given_message with
-  | Message {message_content; _} ->
+  | Message {message_content; _} | Acknowledgement {message_content; _} ->
     begin
       match message_content with
       | Some content -> content
@@ -145,74 +160,45 @@ let show_message_content (given_message : message) : string =
     let error_message = pretty_error_message_string "Cannot show message content from non-message" in
     failwith error_message  (* No action for other message types *)
 
-(** A function to get the message timestamp of an acknowledgement *)
-let get_acknowledgement_message_timestamp (given_message : message) : string =
-  match given_message with
-  | Acknowledgement {message_timestamp; _} -> message_timestamp
-  | _ -> 
-    let error_message = pretty_error_message_string "Cannot get acknowledgement timestamp from non-acknowledgement" in
-    failwith error_message  (* No action for other message types *)
-
-(** A function to get the timestamp of a message *)
-let get_message_timestamp (given_message : message) : string =
+(** A function to get the message timestamp *)
+let show_message_timestamp (given_message : message) : string =
   match given_message with
   | Message {timestamp; _} -> timestamp
+  | Acknowledgement {message_timestamp; _} -> message_timestamp
   | _ -> 
     let error_message = pretty_error_message_string "Cannot get message timestamp from non-message" in
     failwith error_message  (* No action for other message types *)
 
 (** A function to print an acknowledgement *)
 let print_acknowledgement (connection_addr : string) (given_message: message) (acknowledged_timestamp : string) : unit =
-  let message_timestamp = get_acknowledgement_message_timestamp given_message in
+  let message_timestamp = show_message_timestamp given_message in
   let rtt = calculate_rtt message_timestamp acknowledged_timestamp in
-  Printf.printf "[%s: Acknowledgement Received] - RTT: %s milliseconds, Status: Message Received\n"
+  Printf.printf "[%s:ACK] - RTT: %s ms, Status: Message Received"
     connection_addr rtt
-  
-(** A function to print a chat message *)
-let print_chat_message ~global_state (connection_addr : string) (given_message : message) =
-  let timestamp = get_message_timestamp given_message in
-  let content = show_message_content given_message in
-  let message_sender = show_sender ~global_state given_message in
-  Printf.printf "[%s: Chat Message] [%s]: %s says \"%s\"" 
-    connection_addr timestamp message_sender content
 
 (** A function to print a complete log of an acknowledgement *)
 let print_acknowledgement_log ~global_state (connection_addr : string) (given_message: message) (acknowledged_timestamp : string) =
-  match given_message with
-  | Acknowledgement {message_content = Some content; message_timestamp; _} ->
-    let message_sender = show_sender ~global_state given_message in
-    let message_recipient = show_receiver ~global_state given_message in
-    let pretty_timestamp = pretty_date_from_timestamp_str message_timestamp in
-    let rtt = calculate_rtt message_timestamp acknowledged_timestamp in
-    let formatted_message = Printf.sprintf 
-      "Acknowledgement Received at %s:\n- From: %s\n- To: %s\n- Timestamp: %s\n- RTT: %s milliseconds\n- Content: %s" 
-      connection_addr message_sender message_recipient pretty_timestamp rtt content
-    in
-    let pretty_message = pretty_info_message_string formatted_message in
-    print_endline pretty_message
-  | _ -> 
-    let error_message = pretty_error_message_string "Cannot print acknowledgement log from non-acknowledgement" in
-    failwith error_message
+  let content = show_message_content given_message in
+  let message_timestamp = show_message_timestamp given_message in
+  let message_sender = show_sender ~global_state given_message in
+  let message_recipient = show_receiver ~global_state given_message in
+  let pretty_timestamp = pretty_date_from_timestamp_str message_timestamp in
+  let rtt = calculate_rtt message_timestamp acknowledged_timestamp in
+  let formatted_message = sprintf 
+    "Acknowledgement at %s:\n- From: %s\n- To: %s\n- Timestamp: %s\n- RTT: %s milliseconds\n- Content: %s" 
+    connection_addr message_sender message_recipient pretty_timestamp rtt content
+  in
+  let pretty_message = pretty_info_message_string formatted_message in
+  print_endline pretty_message
 
-let print_connected_message (nick : string) ~global_state : unit =
-  let client_connection_address_str = show_client_connection_address ~global_state in
-  (let message = Printf.sprintf "Client \"%s\" has connected from %s." nick client_connection_address_str in
-  let connected_message = pretty_info_message_string message in
-  Printf.printf "%s" connected_message;)
-
-let print_disconnected_message (nick : string) ~global_state : unit =
-  let client_connection_address_str = show_client_connection_address ~global_state in
-  (let message = Printf.sprintf "\"%s\" has disconnected from %s." nick client_connection_address_str in
-  let disconnected_message = pretty_info_message_string message in
-  Printf.printf "%s" disconnected_message;)
-
-let print_client_disconnection_message ~global_state =
-  let client_connection_address = show_client_connection_address ~global_state in
-  let client_nickname = show_client_nickname ~global_state in
-  let info_message = Printf.sprintf "Client '%s' at address '%s' has disconnected." client_nickname client_connection_address in
-  print_endline info_message
-  
-let start_up_message ~nick ~port =
-  let header = Printf.sprintf "\n|| Server Startup Information ||\n" in
-  let info_message = Printf.sprintf "Server '%s' has started on port %d.\nAwaiting connections..." nick port in
-  Printf.sprintf "%s\n%s\n" header info_message
+(** A function to print a chat message *)
+let print_chat_message ~global_state ~sender_type (given_message : message) =
+  let connection_address = begin match sender_type with
+  | Server -> show_server_connection_address ~global_state
+  | Client -> show_client_connection_address ~global_state
+  end in
+  let timestamp = show_message_timestamp given_message in
+  let content = show_message_content given_message in
+  let message_sender = show_sender ~global_state given_message in
+  printf "[%s: Chat Message] [%s]: %s says \"%s\"" 
+  connection_address timestamp message_sender content

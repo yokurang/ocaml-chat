@@ -83,10 +83,10 @@ type global_state = {
 Fail
   I need a message type in case an error occurs when parsing from S-Expression
 
-ConnectionRequest
+ClientConnection
   I need a message type to log when a new connection request has been made
 
-ConnectionAccepted
+ServerConnection
   I need a message type to log when a connection request has been accepted *)
 type message =
 | Message of {
@@ -104,10 +104,10 @@ type message =
 | Fail of {
   error_message: string
 }
-| ConnectionRequest of {
-  user_nickname: string
+| ClientConnection of {
+  client_nickname: string
 }
-| ConnectionAccepted of {
-  user_nickname: string
+| ServerConnection of {
+  server_nickname: string
 }
 [@@deriving sexp]
