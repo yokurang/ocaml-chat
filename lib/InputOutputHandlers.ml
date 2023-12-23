@@ -18,14 +18,13 @@ let write_message (w : string Pipe.Writer.t) (given_message : message) : unit De
       let pretty_error_message = pretty_error_message_string error_message in
       let () = print_endline pretty_error_message in return ()
 
-let handle_stdin_payload payload writer_pipe ~message_created_at_timestamp_queue : unit Deferred.t =
+let handle_stdin_payload payload writer_pipe : unit Deferred.t =
   try_with (fun () ->
     match payload with
     | InputEof -> 
       return ()
     | InputOk message ->
       let time_ns_now = Time_ns_unix.to_string (Time_ns_unix.now ()) in
-      let () = Queue.enqueue message_created_at_timestamp_queue time_ns_now in
       write_message writer_pipe (Message {
         message_content = Some message;
         timestamp = time_ns_now;
@@ -48,40 +47,31 @@ let parse_string_to_message_sexp (message : string) : message =
     let error_message = pretty_error_message_string (Exn.to_string exn) in
     Fail { error_message = error_message }
 
-let handle_socket_message message ~connection_address writer_pipe ~message_created_at_timestamp_queue : bool Deferred.t =
+let handle_socket_message message ~connection_address writer_pipe : bool Deferred.t =
   match message with
   | Acknowledgement { message_timestamp } ->
-    let connection_address = connection_address
-    in let message_created_at_timestamp_option = Queue.dequeue message_created_at_timestamp_queue in
-    let message_created_at_timestamp = Option.value_exn message_created_at_timestamp_option in
-    if (String.equal message_created_at_timestamp message_timestamp)
-    then
-      let rtt = Time_ns_unix.diff (Time_ns_unix.now ()) (Time_ns_unix.of_string message_timestamp) in
-      printf "[%s:ACK] - RTT: %s ms, Status: Message Received\n" connection_address (Time_ns.Span.to_ms rtt |> Float.to_string);
-      return true
-    else
-      let error_message = "Acknowledgement timestamp does not match" in
-      let pretty_error_message = pretty_error_message_string error_message in
-      let () = print_endline pretty_error_message in return false
-    | Message { message_content; timestamp } ->
-      let connection_address = connection_address in
-      let pretty_timestamp = pretty_date_from_timestamp_str timestamp in
-      let () = print_endline (sprintf "[Chat Message] [%s]: %s says %s" pretty_timestamp connection_address (Option.value_exn message_content)) in
-      let%bind () = write_message writer_pipe (Acknowledgement {
-        message_timestamp = timestamp;
-      }) in
-      return true
+    let connection_address = connection_address in
+    let rtt = Time_ns_unix.diff (Time_ns_unix.now ()) (Time_ns_unix.of_string message_timestamp) in
+    printf "[%s:ACK] - RTT: %s ms, Status: Message Received\n" connection_address (Time_ns.Span.to_ms rtt |> Float.to_string);
+    return true
+  | Message { message_content; timestamp } ->
+    let connection_address = connection_address in
+    let pretty_timestamp = pretty_date_from_timestamp_str timestamp in
+    let () = print_endline (sprintf "[Chat Message] [%s]: %s says %s" pretty_timestamp connection_address (Option.value_exn message_content)) in
+    let%bind () = write_message writer_pipe (Acknowledgement {
+      message_timestamp = timestamp;
+    }) in return true
   | Fail { error_message } ->
     let () = print_endline (pretty_error_message_string error_message) in return false
 
-let handle_socket_payload stdin_payload ~connection_address writer_pipe ~message_created_at_timestamp_queue : bool Deferred.t =
+let handle_socket_payload stdin_payload ~connection_address writer_pipe : bool Deferred.t =
   match stdin_payload with
   | InputEof ->
     return false
   | InputOk message -> 
     try_with (fun () ->
       let message = parse_string_to_message_sexp message in
-      handle_socket_message message ~connection_address writer_pipe ~message_created_at_timestamp_queue
+      handle_socket_message message ~connection_address writer_pipe
     ) >>= function
     | Ok result -> return result
     | Error exn ->
@@ -89,7 +79,7 @@ let handle_socket_payload stdin_payload ~connection_address writer_pipe ~message
       let () = print_endline error_message in
       return false
 
-let rec handle_connection ~socket_reader_pipe ~socket_writer_pipe ~stdin_reader_pipe ~connection_address ~message_created_at_timestamp_queue : unit Deferred.t =
+let rec handle_connection ~socket_reader_pipe ~socket_writer_pipe ~stdin_reader_pipe ~connection_address : unit Deferred.t =
   Deferred.choose [
     Deferred.Choice.map (Pipe.read_choice_single_consumer_exn socket_reader_pipe [%here]) 
       ~f:(function 
@@ -108,14 +98,14 @@ let rec handle_connection ~socket_reader_pipe ~socket_writer_pipe ~stdin_reader_
     let () = print_endline pretty_disconnected_message in
     return ()
   | Socket payload ->
-    let ping_pong = handle_socket_payload payload ~connection_address socket_writer_pipe ~message_created_at_timestamp_queue in
+    let ping_pong = handle_socket_payload payload ~connection_address socket_writer_pipe in
     Deferred.bind ping_pong ~f:(fun result ->
       if result then
-        handle_connection ~socket_reader_pipe ~socket_writer_pipe ~stdin_reader_pipe ~connection_address ~message_created_at_timestamp_queue
+        handle_connection ~socket_reader_pipe ~socket_writer_pipe ~stdin_reader_pipe ~connection_address
       else
         return ()
     )
   | Stdin payload ->
-      handle_stdin_payload payload socket_writer_pipe ~message_created_at_timestamp_queue
+      handle_stdin_payload payload socket_writer_pipe
   >>= fun () ->
-  handle_connection ~socket_reader_pipe ~socket_writer_pipe ~stdin_reader_pipe ~connection_address ~message_created_at_timestamp_queue
+  handle_connection ~socket_reader_pipe ~socket_writer_pipe ~stdin_reader_pipe ~connection_address

@@ -16,13 +16,11 @@ let start_client ~host ~port ~stdin_reader_pipe =
           let () = printf "%s has connected.\n%!" server_socket_addr_str in
           let socket_reader_pipe = Reader.pipe reader in
           let socket_writer_pipe = Writer.pipe writer in
-          let message_created_at_timestamp_queue : string Queue.t = Queue.create () in
           handle_connection
             ~socket_reader_pipe:socket_reader_pipe
             ~socket_writer_pipe:socket_writer_pipe
             ~stdin_reader_pipe:stdin_reader_pipe
             ~connection_address:server_socket_addr_str
-            ~message_created_at_timestamp_queue:message_created_at_timestamp_queue
         ) 
     ) >>= function
     | Ok () ->
