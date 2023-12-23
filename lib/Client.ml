@@ -50,7 +50,7 @@ let start_client ~host ~port ~stdin_reader_pipe =
       end
   )
   ~finally:(fun () ->
-    let info_message = sprintf "Closing connection..." in
+    let info_message = sprintf "The chat server has shut down%! Disconnecting..." in
     let pretty_info_message = pretty_info_message_string info_message in
     let () = print_endline pretty_info_message in
     Deferred.unit
