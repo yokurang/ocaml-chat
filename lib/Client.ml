@@ -6,6 +6,8 @@ open InputOutputHandlers
 let start_client ~host ~port ~stdin_reader_pipe =
   Deferred.ignore_m (
   Monitor.protect (fun () ->
+    let () = print_endline (pretty_info_message_string
+    (sprintf "Connecting to server on host %s and port %d" host port)) in
     let greeting_phrases : string list = [
       "Say something nice!"; "Will sparks fly this time?";
       "Maybe ask about their day!"; "Why not ask about their day?"
@@ -20,7 +22,7 @@ let start_client ~host ~port ~stdin_reader_pipe =
           let server_socket_addr_str = Socket.Address.to_string server_socket_addr in
           let greeting_phrase = List.random_element_exn greeting_phrases in
           let () = print_endline (pretty_info_message_string
-          (sprintf "%s has connected. %s"
+          (sprintf "Connected to %s. %s"
           server_socket_addr_str greeting_phrase)) in
           let socket_reader_pipe = Reader.pipe reader in
           let socket_writer_pipe = Writer.pipe writer in
