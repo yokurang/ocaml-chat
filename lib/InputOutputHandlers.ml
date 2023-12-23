@@ -59,7 +59,7 @@ let parse_string_to_message_sexp (message : string) : message =
   2. If a message of type acknowledgement is obtained, compute the RTT and
   pretty print the acknowledgement message
 *)
-let handle_socket_message message ~connection_address writer_pipe : bool Deferred.t =
+let handle_socket_message message ~connection_address writer_pipe : unit Deferred.t =
   match message with
   | Message { message_content; timestamp } ->
     let connection_address = connection_address in
@@ -67,18 +67,18 @@ let handle_socket_message message ~connection_address writer_pipe : bool Deferre
     let () = print_endline
     (sprintf "[Chat Message] [%s]: %s says %s"
     pretty_timestamp connection_address (Option.value_exn message_content)) in
-    let%bind () = write_message writer_pipe (Acknowledgement {
+    write_message writer_pipe (Acknowledgement {
       message_timestamp = timestamp;
-    }) in return true
+    })
   | Acknowledgement { message_timestamp } ->
     let connection_address = connection_address in
     let rtt = Time_ns_unix.diff (Time_ns_unix.now ()) (Time_ns_unix.of_string message_timestamp) in
     let () = print_endline
     (sprintf "[Acknowledgement from %s] - RTT: %s ms, Status: Message Received\n"
     connection_address (Time_ns.Span.to_ms rtt |> Float.to_string)) in
-    return true
+    return ()
   | Fail { error_message } ->
-    let () = print_endline (pretty_error_message_string error_message) in return false
+    let () = print_endline (pretty_error_message_string error_message) in return ()
 
 (** A function to handle socket input that has been read from the reader pipe *)
 let handle_socket_payload stdin_payload ~connection_address writer_pipe : bool Deferred.t =
@@ -90,7 +90,7 @@ let handle_socket_payload stdin_payload ~connection_address writer_pipe : bool D
       let message = parse_string_to_message_sexp message in
       handle_socket_message message ~connection_address writer_pipe
     ) >>= function
-    | Ok result -> return result
+    | Ok () -> return true
     | Error exn ->
       let error_message = pretty_error_message_string (Exn.to_string exn) in
       let () = print_endline error_message in

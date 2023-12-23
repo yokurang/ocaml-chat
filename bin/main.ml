@@ -1,5 +1,6 @@
 open Async
 
+(** Implementation of the command line interface for my one to one chat application *)
 let () : unit =
   let open Command.Let_syntax in
   Command.group

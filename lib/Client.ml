@@ -3,6 +3,7 @@ open Async
 open Utils
 open InputOutputHandlers
 
+(** Function to start the client *)
 let start_client ~host ~port ~stdin_reader_pipe =
   Deferred.ignore_m (
   Monitor.protect (fun () ->
@@ -50,7 +51,7 @@ let start_client ~host ~port ~stdin_reader_pipe =
       end
   )
   ~finally:(fun () ->
-    let info_message = sprintf "The chat server has shut down%! Disconnecting..." in
+    let info_message = sprintf "The chat server has shut down! You must disconnect too..." in
     let pretty_info_message = pretty_info_message_string info_message in
     let () = print_endline pretty_info_message in
     Deferred.unit

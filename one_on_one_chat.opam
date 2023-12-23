@@ -9,8 +9,7 @@ authors: ["Alan Matthew"]
 license: "LICENSE"
 tags: ["chat" "ocaml"]
 homepage: "https://github.com/yokurang/alan-ahrefs-challenge.git"
-doc:
-  "https://github.com/yokurang/alan-ahrefs-challenge.git"
+doc: "https://github.com/yokurang/alan-ahrefs-challenge.git"
 bug-reports: "https://github.com/yokurang/alan-ahrefs-challenge.git/issues"
 depends: [
   "ocaml"

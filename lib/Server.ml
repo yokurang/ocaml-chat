@@ -3,6 +3,7 @@ open Async
 open Utils
 open InputOutputHandlers
 
+(** Function to start the server *)
 let start_server ~port ~stdin_reader_pipe =
   Deferred.ignore_m (
     Monitor.protect (fun () ->
