@@ -1,36 +1,32 @@
 open Core
 open Async
 open Utils
-open DataTypes
 open InputOutputHandlers
 
-let start_client ~host ~port ~nick ~global_state ~sender_type ~stdin_reader_pipe =
+let start_client ~host ~port ~stdin_reader_pipe =
   Deferred.ignore_m (
   Monitor.protect (fun () ->
-    let () = global_state.client_nickname := (Some nick) in
     try_with (fun () ->
       Tcp.with_connection
         (Tcp.Where_to_connect.of_host_and_port { host; port })
         ?timeout:(Some (Time_float_unix.Span.of_sec 5.))
         (fun _sock reader writer ->
-          let () = printf "\nWaiting to connect to server...\n%!" in
           let server_socket_addr = Socket.getpeername _sock in
           let server_socket_addr_str = Socket.Address.to_string server_socket_addr in
-          let () = global_state.server_connection_address := (Some server_socket_addr_str) in
+          let () = printf "%s has connected.\n%!" server_socket_addr_str in
           let socket_reader_pipe = Reader.pipe reader in
           let socket_writer_pipe = Writer.pipe writer in
-          let client_connection_message = ClientConnection { client_nickname = nick } in
-          let () = write_message socket_writer_pipe client_connection_message in
+          let message_created_at_timestamp_queue : string Queue.t = Queue.create () in
           handle_connection
-            ~global_state
-            ~sender_type
-            ~socket_reader_pipe
-            ~socket_writer_pipe
-            ~stdin_reader_pipe
+            ~socket_reader_pipe:socket_reader_pipe
+            ~socket_writer_pipe:socket_writer_pipe
+            ~stdin_reader_pipe:stdin_reader_pipe
+            ~connection_address:server_socket_addr_str
+            ~message_created_at_timestamp_queue:message_created_at_timestamp_queue
         ) 
     ) >>= function
     | Ok () ->
-      Deferred.unit
+      Deferred.return (Pipe.close_read stdin_reader_pipe)
     | Error exn ->
       let%bind () = Deferred.return (Pipe.close_read stdin_reader_pipe) in
       begin match Monitor.extract_exn exn with

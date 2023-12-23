@@ -17,10 +17,6 @@ type payload =
     Since this is a one-on-one chat application, we either have
     1. A server sending a message to a client
     2. Or a client sending a message to a server *)
-type participant =
-  | Server
-  | Client
-  [@@deriving sexp]
 
 (** PayloadSource:
     The chat application has to simultaneously listen to the socket and stdin.
@@ -41,12 +37,6 @@ type payloadSource =
       2. The server's nickname
       3. The client's connection address
       4. The server's connection address *)
-type global_state = {
-  client_nickname: string option ref;
-  server_nickname: string option ref;
-  client_connection_address: string option ref;
-  server_connection_address: string option ref;
-}
 
 (** Message:
     I need a message type to send messages between the server and client.
@@ -91,23 +81,12 @@ ServerConnection
 type message =
 | Message of {
   message_content: string option;
-  message_from: participant;
-  message_to: participant;
   timestamp: string;
 } 
 | Acknowledgement of {
-  message_content: string option;
-  message_from: participant;
-  message_to: participant;
   message_timestamp: string;
 }
 | Fail of {
   error_message: string
-}
-| ClientConnection of {
-  client_nickname: string
-}
-| ServerConnection of {
-  server_nickname: string
 }
 [@@deriving sexp]
