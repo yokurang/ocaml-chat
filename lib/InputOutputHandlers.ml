@@ -74,7 +74,7 @@ let handle_socket_message message ~connection_address writer_pipe : bool Deferre
     let connection_address = connection_address in
     let rtt = Time_ns_unix.diff (Time_ns_unix.now ()) (Time_ns_unix.of_string message_timestamp) in
     let () = print_endline
-    (sprintf "[%s:Acknowledgement Received] - RTT: %s ms, Status: Message Received\n"
+    (sprintf "[Acknowledgement from %s] - RTT: %s ms, Status: Message Received\n"
     connection_address (Time_ns.Span.to_ms rtt |> Float.to_string)) in
     return true
   | Fail { error_message } ->
