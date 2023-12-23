@@ -3,6 +3,7 @@ open Async
 open DataTypes
 open Utils
 
+(** A function to write a message to a writer pipe *)
 let write_message (w : string Pipe.Writer.t) (given_message : message) : unit Deferred.t=
   match given_message with
   | Fail {error_message} ->
@@ -18,6 +19,7 @@ let write_message (w : string Pipe.Writer.t) (given_message : message) : unit De
       let pretty_error_message = pretty_error_message_string error_message in
       let () = print_endline pretty_error_message in return ()
 
+(** A function to handle user stdin *)
 let handle_stdin_payload payload writer_pipe : unit Deferred.t =
   try_with (fun () ->
     match payload with
@@ -38,6 +40,8 @@ let handle_stdin_payload payload writer_pipe : unit Deferred.t =
       print_endline error_message;
       return ()
 
+(** A helper function to parse a message as a string to a
+    message as an S-expression *)
 let parse_string_to_message_sexp (message : string) : message =
   try 
     let sexp = Sexp.of_string message in
@@ -47,6 +51,8 @@ let parse_string_to_message_sexp (message : string) : message =
     let error_message = pretty_error_message_string (Exn.to_string exn) in
     Fail { error_message = error_message }
 
+
+(** A function to handle the application logic depending on the given message  *)
 let handle_socket_message message ~connection_address writer_pipe : bool Deferred.t =
   match message with
   | Acknowledgement { message_timestamp } ->
@@ -64,6 +70,7 @@ let handle_socket_message message ~connection_address writer_pipe : bool Deferre
   | Fail { error_message } ->
     let () = print_endline (pretty_error_message_string error_message) in return false
 
+(** A function to handle socket input that has been read from the reader pipe *)
 let handle_socket_payload stdin_payload ~connection_address writer_pipe : bool Deferred.t =
   match stdin_payload with
   | InputEof ->
@@ -79,6 +86,9 @@ let handle_socket_payload stdin_payload ~connection_address writer_pipe : bool D
       let () = print_endline error_message in
       return false
 
+(** A single function that can handle between reading and handling from stdin
+    reading and handling from socket input simultaneously. This implements the
+    message sending logic. *)
 let rec handle_connection ~socket_reader_pipe ~socket_writer_pipe ~stdin_reader_pipe ~connection_address : unit Deferred.t =
   Deferred.choose [
     Deferred.Choice.map (Pipe.read_choice_single_consumer_exn socket_reader_pipe [%here]) 
