@@ -1,2 +1,4 @@
 (test
- (name test_one_on_one_chat))
+ (name test_one_on_one_chat)
+ (libraries core async sexplib)
+ (preprocess (pps ppx_jane)))
