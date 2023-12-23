@@ -8,6 +8,10 @@ let () : unit =
       ("server", 
         Command.async
           ~summary:"Start the server and wait for a client to connect."
+          ~readme:(fun () -> "
+            As an example, you can start the server with:
+            dune exec -- one_on_one_chat server -port 8765
+          ")
           (let%map_open port = flag "-port" 
             (optional_with_default 8765 int) 
             ~doc:"PORT The port number of the server (default: 8765)"
@@ -23,6 +27,10 @@ let () : unit =
       ("client", 
         Command.async
           ~summary:"Attempt to connect to a server to initiate chat."
+          ~readme:(fun () -> "
+            As an example, you can start the client with:
+            dune exec -- one_on_one_chat client -host 127.0.0.1 -port 8765
+          ")
           (let%map_open host = flag "-host"
             (optional_with_default "127.0.0.1" string) 
             ~doc:"HOSTNAME The hostname of the server (default: 127.0.0.1)"
