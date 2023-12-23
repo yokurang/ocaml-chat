@@ -7,7 +7,8 @@ let start_client ~host ~port ~stdin_reader_pipe =
   Deferred.ignore_m (
   Monitor.protect (fun () ->
     let greeting_phrases : string list = [
-      "Say something nice!"; "Will sparks fly this time?"; "Maybe ask about their day!"; "Why not ask about their day?"
+      "Say something nice!"; "Will sparks fly this time?";
+      "Maybe ask about their day!"; "Why not ask about their day?"
       ] in
     try_with (fun () ->
       Tcp.with_connection
