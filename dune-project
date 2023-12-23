@@ -13,7 +13,7 @@
 
 (license LICENSE)
 
-(documentation https://github.com/yokurang/https://github.com/yokurang/alan-ahrefs-challenge.git)
+(documentation https://github.com/yokurang/alan-ahrefs-challenge.git)
 
 (package
  (name one_on_one_chat)
