@@ -25,13 +25,11 @@ let handle_stdin_payload payload writer_pipe ~message_created_at_timestamp_queue
       return ()
     | InputOk message ->
       let time_ns_now = Time_ns_unix.to_string (Time_ns_unix.now ()) in
-      let new_message = create_message
-        ~content:(Some message)
-        ~timestamp:time_ns_now 
-      in
-      let%bind () = write_message writer_pipe new_message in
       let () = Queue.enqueue message_created_at_timestamp_queue time_ns_now in
-      return ()
+      write_message writer_pipe (Message {
+        message_content = Some message;
+        timestamp = time_ns_now;
+      })
   )
   >>= function
   | Ok () ->
@@ -51,30 +49,27 @@ let parse_string_to_message_sexp (message : string) : message =
     Fail { error_message = error_message }
 
 let handle_socket_message message ~connection_address writer_pipe ~message_created_at_timestamp_queue : bool Deferred.t =
-  let time_ns_now = Time_ns_unix.to_string (Time_ns_unix.now ()) in
   match message with
   | Acknowledgement { message_timestamp } ->
-    let ack = Acknowledgement {
-      message_timestamp;
-    } in let connection_address = connection_address
+    let connection_address = connection_address
     in let message_created_at_timestamp_option = Queue.dequeue message_created_at_timestamp_queue in
     let message_created_at_timestamp = Option.value_exn message_created_at_timestamp_option in
     if (String.equal message_created_at_timestamp message_timestamp)
     then
-      let () = print_acknowledgement connection_address ack time_ns_now in
+      let rtt = Time_ns_unix.diff (Time_ns_unix.now ()) (Time_ns_unix.of_string message_timestamp) in
+      printf "[%s:ACK] - RTT: %s ms, Status: Message Received\n" connection_address (Time_ns.Span.to_ms rtt |> Float.to_string);
       return true
     else
       let error_message = "Acknowledgement timestamp does not match" in
       let pretty_error_message = pretty_error_message_string error_message in
       let () = print_endline pretty_error_message in return false
     | Message { message_content; timestamp } ->
-    let msg = Message {
-      message_content;
-      timestamp;
-    } in let connection_address = connection_address in
-      let () = print_chat_message ~connection_address msg in
-      let ack_message = create_acknowledgement_from_message msg in
-      let%bind () = write_message writer_pipe ack_message in
+      let connection_address = connection_address in
+      let pretty_timestamp = pretty_date_from_timestamp_str timestamp in
+      let () = print_endline (sprintf "[Chat Message] [%s]: %s says %s" pretty_timestamp connection_address (Option.value_exn message_content)) in
+      let%bind () = write_message writer_pipe (Acknowledgement {
+        message_timestamp = timestamp;
+      }) in
       return true
   | Fail { error_message } ->
     let () = print_endline (pretty_error_message_string error_message) in return false
