@@ -6,6 +6,9 @@ open InputOutputHandlers
 let start_client ~host ~port ~stdin_reader_pipe =
   Deferred.ignore_m (
   Monitor.protect (fun () ->
+    let greeting_phrases : string list = [
+      "Say something nice!"; "Will sparks fly this time?"; "Maybe ask about their day!"; "Why not ask about their day?"
+      ] in
     try_with (fun () ->
       Tcp.with_connection
         (Tcp.Where_to_connect.of_host_and_port { host; port })
@@ -14,8 +17,10 @@ let start_client ~host ~port ~stdin_reader_pipe =
         (fun _sock reader writer ->
           let server_socket_addr = Socket.getpeername _sock in
           let server_socket_addr_str = Socket.Address.to_string server_socket_addr in
+          let greeting_phrase = List.random_element_exn greeting_phrases in
           let () = print_endline (pretty_info_message_string
-          (sprintf "%s has connected. Say something nice!" server_socket_addr_str)) in
+          (sprintf "%s has connected. %s"
+          server_socket_addr_str greeting_phrase)) in
           let socket_reader_pipe = Reader.pipe reader in
           let socket_writer_pipe = Writer.pipe writer in
           handle_connection
