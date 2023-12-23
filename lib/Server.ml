@@ -18,7 +18,8 @@ let start_server ~port ~stdin_reader_pipe =
           (Tcp.Where_to_listen.of_port port)
           (fun _addr reader writer ->
             let client_socket_addr_str = Socket.Address.to_string _addr in
-            let () = print_endline (sprintf "%s has connected." client_socket_addr_str) in
+            let () = print_endline (pretty_info_message_string
+            (sprintf "%s has connected. Awaiting input..." client_socket_addr_str)) in
             let socket_reader_pipe = Reader.pipe reader in
             let socket_writer_pipe = Writer.pipe writer in
             handle_connection

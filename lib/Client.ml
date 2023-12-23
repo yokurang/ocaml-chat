@@ -9,11 +9,13 @@ let start_client ~host ~port ~stdin_reader_pipe =
     try_with (fun () ->
       Tcp.with_connection
         (Tcp.Where_to_connect.of_host_and_port { host; port })
-        ?timeout:(Some (Time_float_unix.Span.of_sec 5.))
+        ?timeout:(Some (Time_float_unix.Span.of_sec 3.)) (* is this too short? *)
+        ?interrupt:(Some (Deferred.never ())) (* never interrupt connection *)
         (fun _sock reader writer ->
           let server_socket_addr = Socket.getpeername _sock in
           let server_socket_addr_str = Socket.Address.to_string server_socket_addr in
-          let () = printf "%s has connected.\n%!" server_socket_addr_str in
+          let () = print_endline (pretty_info_message_string
+          (sprintf "%s has connected." server_socket_addr_str)) in
           let socket_reader_pipe = Reader.pipe reader in
           let socket_writer_pipe = Writer.pipe writer in
           handle_connection

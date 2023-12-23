@@ -52,7 +52,7 @@ let handle_socket_message message ~connection_address writer_pipe : bool Deferre
   | Acknowledgement { message_timestamp } ->
     let connection_address = connection_address in
     let rtt = Time_ns_unix.diff (Time_ns_unix.now ()) (Time_ns_unix.of_string message_timestamp) in
-    printf "[%s:ACK] - RTT: %s ms, Status: Message Received\n" connection_address (Time_ns.Span.to_ms rtt |> Float.to_string);
+    printf "[%s:Acknowledgement Received] - RTT: %s ms, Status: Message Received\n" connection_address (Time_ns.Span.to_ms rtt |> Float.to_string);
     return true
   | Message { message_content; timestamp } ->
     let connection_address = connection_address in
@@ -91,7 +91,7 @@ let rec handle_connection ~socket_reader_pipe ~socket_writer_pipe ~stdin_reader_
           | `Ok message -> Stdin (InputOk message))
   ]
   >>= function
-  | Socket InputEof | Stdin InputEof -> 
+  | Stdin InputEof | Socket InputEof ->
     let connection_address = connection_address in
     let disconnected_message = sprintf "%s disconnected" connection_address in
     let pretty_disconnected_message = pretty_info_message_string disconnected_message in
