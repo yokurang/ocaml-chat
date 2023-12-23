@@ -15,7 +15,7 @@ let start_client ~host ~port ~stdin_reader_pipe =
           let server_socket_addr = Socket.getpeername _sock in
           let server_socket_addr_str = Socket.Address.to_string server_socket_addr in
           let () = print_endline (pretty_info_message_string
-          (sprintf "%s has connected." server_socket_addr_str)) in
+          (sprintf "%s has connected. Say something nice!" server_socket_addr_str)) in
           let socket_reader_pipe = Reader.pipe reader in
           let socket_writer_pipe = Writer.pipe writer in
           handle_connection
@@ -31,7 +31,7 @@ let start_client ~host ~port ~stdin_reader_pipe =
       let%bind () = Deferred.return (Pipe.close_read stdin_reader_pipe) in
       begin match Monitor.extract_exn exn with
       | Unix.Unix_error (Unix.Error.ECONNREFUSED, _, _) ->
-        let error_message = Printf.sprintf "Server is not running on %s:%d\n%!" host port in
+        let error_message = sprintf "Server is not running on %s:%d%!\n" host port in
         let pretty_error_message = pretty_error_message_string error_message in
         let () = print_endline pretty_error_message in
         Shutdown.exit 0
@@ -42,7 +42,7 @@ let start_client ~host ~port ~stdin_reader_pipe =
       end
   )
   ~finally:(fun () ->
-    let info_message = Printf.sprintf "Closing connection..." in
+    let info_message = sprintf "Closing connection..." in
     let pretty_info_message = pretty_info_message_string info_message in
     let () = print_endline pretty_info_message in
     Deferred.unit

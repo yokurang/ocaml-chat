@@ -15,7 +15,7 @@ let pretty_date_from_timestamp_str (timestamp_str : string) : string =
 let pretty_log_message_string (log_level : string) (message : string) : string =
   let timestamp = Time_ns_unix.to_string (Time_ns.now ()) in
   let pretty_date = pretty_date_from_timestamp_str timestamp in
-  sprintf "\n[%s] [%s] - %s\n" log_level pretty_date message
+  sprintf "[%s] [%s] - %s\n" log_level pretty_date message
 
 (** A function for pretty printing info messages.
     You can customize the message to be printed. *)

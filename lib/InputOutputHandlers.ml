@@ -52,21 +52,31 @@ let parse_string_to_message_sexp (message : string) : message =
     Fail { error_message = error_message }
 
 
-(** A function to handle the application logic depending on the given message  *)
+(** A function to handle the application logic depending on the given message
+  1. If a message of type Message is obtained, print out the chat message in a
+  pretty format and write an acknowledgement message over the writer pipe
+  for that message
+  2. If a message of type acknowledgement is obtained, compute the RTT and
+  pretty print the acknowledgement message
+*)
 let handle_socket_message message ~connection_address writer_pipe : bool Deferred.t =
   match message with
-  | Acknowledgement { message_timestamp } ->
-    let connection_address = connection_address in
-    let rtt = Time_ns_unix.diff (Time_ns_unix.now ()) (Time_ns_unix.of_string message_timestamp) in
-    printf "[%s:Acknowledgement Received] - RTT: %s ms, Status: Message Received\n" connection_address (Time_ns.Span.to_ms rtt |> Float.to_string);
-    return true
   | Message { message_content; timestamp } ->
     let connection_address = connection_address in
     let pretty_timestamp = pretty_date_from_timestamp_str timestamp in
-    let () = print_endline (sprintf "[Chat Message] [%s]: %s says %s" pretty_timestamp connection_address (Option.value_exn message_content)) in
+    let () = print_endline
+    (sprintf "[Chat Message] [%s]: %s says %s"
+    pretty_timestamp connection_address (Option.value_exn message_content)) in
     let%bind () = write_message writer_pipe (Acknowledgement {
       message_timestamp = timestamp;
     }) in return true
+  | Acknowledgement { message_timestamp } ->
+    let connection_address = connection_address in
+    let rtt = Time_ns_unix.diff (Time_ns_unix.now ()) (Time_ns_unix.of_string message_timestamp) in
+    let () = print_endline
+    (sprintf "[%s:Acknowledgement Received] - RTT: %s ms, Status: Message Received\n"
+    connection_address (Time_ns.Span.to_ms rtt |> Float.to_string)) in
+    return true
   | Fail { error_message } ->
     let () = print_endline (pretty_error_message_string error_message) in return false
 
@@ -107,7 +117,9 @@ let rec handle_connection ~socket_reader_pipe ~socket_writer_pipe ~stdin_reader_
     let pretty_disconnected_message = pretty_info_message_string disconnected_message in
     let () = print_endline pretty_disconnected_message in
     return ()
-  | Socket payload ->
+  | Socket payload -> (* after processing the socket payload,
+      wait for another stdin. We bounce back between processing the payload and
+      asking for a stdin like a ping pong *)
     let ping_pong = handle_socket_payload payload ~connection_address socket_writer_pipe in
     Deferred.bind ping_pong ~f:(fun result ->
       if result then

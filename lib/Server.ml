@@ -9,7 +9,7 @@ let start_server ~port ~stdin_reader_pipe =
       let header = sprintf "\n|| Server Startup Information ||\n" in
       let info_message = sprintf "Server has started on port %d. Awaiting connections..." port in
       let pretty_info_message = pretty_info_message_string info_message in
-      let start_up_message = sprintf "%s\n%s\n" header pretty_info_message in
+      let start_up_message = sprintf "%s\n%s" header pretty_info_message in
       print_endline start_up_message;
       try_with (fun () ->
         Tcp.Server.create
@@ -19,7 +19,8 @@ let start_server ~port ~stdin_reader_pipe =
           (fun _addr reader writer ->
             let client_socket_addr_str = Socket.Address.to_string _addr in
             let () = print_endline (pretty_info_message_string
-            (sprintf "%s has connected. Awaiting input..." client_socket_addr_str)) in
+            (sprintf "%s has connected. Do you want to make the first move.......?"
+            client_socket_addr_str)) in
             let socket_reader_pipe = Reader.pipe reader in
             let socket_writer_pipe = Writer.pipe writer in
             handle_connection
