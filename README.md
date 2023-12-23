@@ -42,6 +42,8 @@ Finally, build the project:
 dune clean && dune build
 ```
 
+Please make sure you have your `_build` directory after running the above command so that you can run the project and follow the instructions in the next section.
+
 ## Usage
 
 To run the server, run the following command:
