@@ -36,12 +36,6 @@ Then, you can install the necessary dependencies using opam:
 opam install core async sexplib ppx_jane
 ```
 
-or via
-
-```bash
-opam install . --deps-only
-```
-
 Finally, build the project:
 
 ```bash
@@ -188,7 +182,7 @@ Implementation of these functions and more details about them can be found in `I
 
 ## Testing
 
-The following lists the edge cases I considered when testing this application. I have also tested the application on my local machine (MacOS) and on a Linux virtual machine (Fedora 39 Workstation) on OCaml 4.14.0.
+The following lists the edge cases I considered when testing this application. I have also tested the application on my local machine (MacOS) and on a Linux virtual machine (Fedora 39 Workstation) on OCaml version 5.1.1
 
 ### Edge Cases
 
