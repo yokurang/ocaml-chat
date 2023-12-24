@@ -10,7 +10,7 @@ This README contains the following sections:
 
 ## Installation
 
-To run the project locally, please follow the following steps:
+Here, I have outlined the steps to install the dependencies and build the project.
 
 First, you might want to update your opam packages. Note that this dune project requires dune 3.1.2 or higher.
 
@@ -30,7 +30,7 @@ Optionally, you might want to create a new opam switch for this project:
 opam switch create . --deps-only
 ```
 
-Then, install the dependencies via opam:
+Then, you can install the necessary dependencies using opam:
 
 ```bash
 opam install core async sexplib ppx_jane
@@ -128,9 +128,9 @@ The file `InputOutputHandlers.ml` defines the functions to handle input from the
 
 ### Implementing the Message Sending Logic
 
-In building this one to one chat application, I found the most difficult challenge to be implementing the logic to correctly handle between reading from stdin and reading from the socket. Essentially, I need a mechanism to watch both stdin and the socket reader at the same time and react to either appropriately. I solved this problem using `Deferred.choose` and `Pipe.read_choice_single_consumer_exn socket_reader_pipe` from the Pipe interface provided by the Async library. This particular design choice is to ensure that, in a one on one chat application where a specific client or server instance is handling messages from one counterpart, i.e one is a producer and the other is a consumer of messages, at a time, we can choose to only read from stdin or only read from the socket so that messages are processed in the correct order and by the correct recipient, and that messages are not lost in the other pipe. Furthermore, this design choice also made it easier for me to handle the case when the `Eof` condition has been hit, i.e. when the socket is disconnected, and print the appropriate message to the user. This is implemented in `handle_connection` of `InputOutputHandlers.ml`.
+In building this one on one chat application, I found the most difficult challenge to be implementing the logic to correctly handle between reading from stdin and reading from the socket and responding accordingly. I solved this problem using `Deferred.choose` and `Pipe.read_choice_single_consumer_exn socket_reader_pipe` from the Pipe interface provided by the Async library. These functions provide a mechanism to choose to only read from stdin or only read from the socket so that messages are processed in the correct order and by the correct recipient, and that messages are not lost in the other pipe. Furthermore, there is also built-in support for handling exceptions, which is useful for handling the `Eof` condition when the socket is disconnected. This is implemented in `handle_connection` of `InputOutputHandlers.ml`.
 
-### Continued Waiting for Messages to be Sent from Either Party
+### Continued Waiting for Messages from Either Party
 
 Another challenge I spent a lot of time on is figuring out a way to ensure that, once the server and client are connected and either party sends a message, we continue waiting for more messages to be sent from either party until one disconnects using `control-c`. I solved this problem by having my `handle_socket_payload` in `InputOutputHandlers.ml` return a `bool Deferred.t` that indicates whether the socket is still connected. If the socket is still connected, we continue to wait for more messages to be sent from either party. If the socket is disconnected, we stop waiting for more messages to be sent from either party and exit the program. This logic is implemented in this code snippet from `handle_connection` of `InputOutputHandlers.ml`.
 
@@ -180,13 +180,15 @@ Finally, I also spent a lot of time debugging the following bug:
   "Sexplib.Sexp.of_string: got multiple S-expressions where only one was expected.")
 ```
 
+I reproduced this bug by starting the server, starting and connecting the client, sending messages to each other, disconnecting the client, **then sending some messages from the server**, and then connecting the client again.
+
 Observing the error message, I realised that the error was triggered by `parse_string_to_message_sexp`. The reason is that `Sexp.of_string message` raises an exception if the string contains multiple S-expressions. This is because `Sexp.of_string` expects a single S-expression. As such, I implemented a function `parse_string_to_message_sexp_list` which parses a string to a list of S-expressions to handle this scenario. Furthermore, I also implemented a new function `handle_socket_message_list`, which is a recursive function that handles a list of S-expressions. This is implemented in `InputOutputHandlers.ml`. This trick of parsing a string to a list of S-expressions helped me solve this bug.
 
-You may find the implementation of these functions and more details about them in `InputOutputHandlers.ml`.
+Implementation of these functions and more details about them can be found in `InputOutputHandlers.ml`.
 
 ## Testing
 
-The following lists the edge cases I considered when testing this application. I have also tested the application on my local machine (MacOS) and on a Linux virtual machine (Fedora 39 Workstation).
+The following lists the edge cases I considered when testing this application. I have also tested the application on my local machine (MacOS) and on a Linux virtual machine (Fedora 39 Workstation) on OCaml 4.14.0.
 
 ### Edge Cases
 
