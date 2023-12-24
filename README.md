@@ -24,13 +24,19 @@ or
 opam update && opam upgrade
 ```
 
+Optionally, you might want to create a new opam switch for this project:
+
+```bash
+opam switch create . --deps-only
+```
+
 Then, install the dependencies via opam:
 
 ```bash
 opam install core async sexplib ppx_jane
 ```
 
-or
+or via
 
 ```bash
 opam install . --deps-only
