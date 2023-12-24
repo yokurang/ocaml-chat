@@ -186,7 +186,7 @@ You may find the implementation of these functions and more details about them i
 
 ## Testing
 
-The following lists the edge cases I considered when testing this application:
+The following lists the edge cases I considered when testing this application. I have also tested the application on my local machine (MacOS) and on a Linux virtual machine (Fedora 39 Workstation).
 
 ### Edge Cases
 
