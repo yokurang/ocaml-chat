@@ -163,7 +163,7 @@ type message =
 
 Another reason I implemented my messages this way is that it makes it easier to implement the functions to handle the logic to respond to these messages, namely `handle_socket_message_list` from `InputOutputHandlers.ml`. Furthermore, it is arguably easier to write the code to add more message types one might want to add and handle as one would only need to add more branches in the match statement.
 
-You may find the implementation of these data types and more details about them in `DataTypes.ml`.
+Implementation of these data types and more details about them can be found in `DataTypes.ml`.
 
 ### Handling Exceptions when Parsing Messages
 
