@@ -41,8 +41,18 @@ let start_server ~port ~stdin_reader_pipe =
       | Error exn ->
         let%bind () = Deferred.return (Pipe.close_read stdin_reader_pipe) in
         begin match Monitor.extract_exn exn with
+        | Unix.Unix_error (Unix.Error.EADDRNOTAVAIL, _, _) ->
+          let error_message = Printf.sprintf "Port %d is not available.\n%!" port in
+          let pretty_error_message = pretty_error_message_string error_message in
+          let () = print_endline pretty_error_message in
+          Shutdown.exit 0
         | Unix.Unix_error (Unix.Error.EADDRINUSE, _, _) ->
           let error_message = Printf.sprintf "Port %d is already in use.\n%!" port in
+          let pretty_error_message = pretty_error_message_string error_message in
+          let () = print_endline pretty_error_message in
+          Shutdown.exit 0
+        | Unix.Unix_error (Unix.Error.EACCES, _, _) ->
+          let error_message = Printf.sprintf "Port %d is not accessible.\n%!" port in
           let pretty_error_message = pretty_error_message_string error_message in
           let () = print_endline pretty_error_message in
           Shutdown.exit 0

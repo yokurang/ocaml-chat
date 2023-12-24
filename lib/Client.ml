@@ -16,7 +16,7 @@ let start_client ~host ~port ~stdin_reader_pipe =
     try_with (fun () ->
       Tcp.with_connection
         (Tcp.Where_to_connect.of_host_and_port { host; port })
-        ?timeout:(Some (Time_float_unix.Span.of_sec 3.)) (* is this too short? *)
+        ?timeout:(Some (Time_float_unix.Span.of_sec 1.)) (* is this too short? *)
         ?interrupt:(Some (Deferred.never ())) (* never interrupt connection *)
         (fun _sock reader writer ->
           let server_socket_addr = Socket.getpeername _sock in
@@ -39,8 +39,33 @@ let start_client ~host ~port ~stdin_reader_pipe =
     | Error exn ->
       let%bind () = Deferred.return (Pipe.close_read stdin_reader_pipe) in
       begin match Monitor.extract_exn exn with
+      | Unix.Unix_error (Unix.Error.ECONNRESET, _, _) ->
+        let error_message = sprintf "Server has disconnected from %s:%d%!\n" host port in
+        let pretty_error_message = pretty_error_message_string error_message in
+        let () = print_endline pretty_error_message in
+        Shutdown.exit 0
+      | Unix.Unix_error (Unix.Error.EHOSTDOWN, _, _) ->
+        let error_message = sprintf "Server is down on %s:%d%!\n" host port in
+        let pretty_error_message = pretty_error_message_string error_message in
+        let () = print_endline pretty_error_message in
+        Shutdown.exit 0
+      | Unix.Unix_error (Unix.Error.ECONNABORTED, _, _) ->
+        let error_message = sprintf "Server has disconnected from %s:%d%!\n" host port in
+        let pretty_error_message = pretty_error_message_string error_message in
+        let () = print_endline pretty_error_message in
+        Shutdown.exit 0
+      | Unix.Unix_error (Unix.Error.EHOSTUNREACH, _, _) ->
+        let error_message = sprintf "Server is unreachable on %s:%d%!\n" host port in
+        let pretty_error_message = pretty_error_message_string error_message in
+        let () = print_endline pretty_error_message in
+        Shutdown.exit 0
       | Unix.Unix_error (Unix.Error.ECONNREFUSED, _, _) ->
         let error_message = sprintf "Server is not running on %s:%d%!\n" host port in
+        let pretty_error_message = pretty_error_message_string error_message in
+        let () = print_endline pretty_error_message in
+        Shutdown.exit 0
+      | Unix.Unix_error (Unix.Error.ETIMEDOUT, _, _) ->
+        let error_message = sprintf "Server has timed out on %s:%d%!\n" host port in
         let pretty_error_message = pretty_error_message_string error_message in
         let () = print_endline pretty_error_message in
         Shutdown.exit 0
