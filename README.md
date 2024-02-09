@@ -1,4 +1,4 @@
-# Ahrefs Coding Challenge: One on one chat application in OCaml
+# One on one chat application in OCaml
 
 This README contains the following sections:
 
